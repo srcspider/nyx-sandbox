@@ -1,0 +1,6 @@
+name:  Nyx Sandbox
+description:  
+
+dependencies:
+  vector_math:
+    git: https://github.com/johnmccutchan/DartVectorMath.git

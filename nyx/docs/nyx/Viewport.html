@@ -1,0 +1,729 @@
+        <!DOCTYPE html>
+        <html>
+        <head>
+                <meta charset="utf-8">
+        <title>Viewport class / nyx Library / Dart Documentation</title>
+        <link rel="stylesheet" type="text/css"
+            href="../styles.css">
+        <link href="http://fonts.googleapis.com/css?family=Open+Sans:400,600,700,800" rel="stylesheet" type="text/css">
+        <link rel="shortcut icon" href="../favicon.ico">
+        
+        </head>
+        <body data-library="nyx" data-type="Viewport">
+        <div class="page">
+        <div class="header">
+          <a href="../index.html"><div class="logo"></div></a>
+          <a href="../index.html">Dart Documentation</a>
+         &rsaquo; <a href="../nyx.html">nyx</a> &rsaquo; <a href="../nyx/Viewport.html">Viewport</a>        <div id="search-box">
+          <input type="search" name="q" id="q" autocomplete="off"
+              class="search-input" placeholder="Search API">
+        </div>
+        
+      </div>
+      <div class="drop-down" id="drop-down"></div>
+      
+        <div class="nav">
+        
+<h2><div class="icon-library"></div><a href="../nyx.html">nyx</a></h2><ul class="icon">
+<li><a href="../nyx/Exception_MissingFeature.html"><div class="icon-class"></div>Exception_MissingFeature</a></li>
+<li><a href="../nyx/FramePainter.html"><div class="icon-interface"></div>FramePainter</a></li>
+<li><a href="../nyx/GL.html"><div class="icon-class"></div>GL</a></li>
+<li><a href="../nyx/Preprocess.html"><div class="icon-interface"></div>Preprocess</a></li>
+<li><div class="icon-class"></div><strong>Viewport</strong></li>
+</ul>
+</div>
+<div class="content">
+        <h2><strong>Viewport</strong>
+          class
+        </h2>
+        
+<button id="show-inherited" class="show-inherited">Hide inherited</button>
+<div class="doc">
+<p>General viewport class for managing canvas and basic webgl settings.</p>
+<p>Basic usage:</p><ul><li>
+<p>create a new instance via new nyx.Viewport and passing a html Element as
+   a container argument; you may also optionally pass with, height
+   and showFPS</p></li><li>
+<p>add a fragment shader via <a class="crossref" href="../nyx/Viewport.html#addFragmentShader">addFragmentShader</a> and a vertex shader via
+   <a class="crossref" href="../nyx/Viewport.html#addVertexShader">addVertexShader</a>. Both accept the named parameter source and expect
+   strings.</p></li><li>
+<p>put your logic into the painter via the <a class="crossref" href="../nyx/Viewport.html#painter">painter</a> method; simply create a
+   annoymous function which accepts: gl, program, time and aspect (all are
+   named parameters).</p></li></ul>
+<p> eg.</p>
+<pre><code> nyx.Viewport viewport = new nyx.Viewport(
+   container:
+     query('[data-nyx-viewport]')
+ );
+</code></pre>
+<pre><code> // just an example
+ viewport.addVertexShader(
+   source:
+     """
+     attribute vec2 aPosition;
+     void main() {
+       gl_Position = vec4(aPosition, 0, 1);
+     }
+     """
+ );
+</code></pre>
+<pre><code> // just an example
+ viewport.addFragmentShader(
+   source:
+     """
+     precision mediump float;
+     uniform vec4 uColor;
+     void main() {
+       gl_FragColor = uColor;
+     }
+     """
+ );
+</code></pre>
+<pre><code> viewport.painter(({gl, program, aspect, time}) {
+   // your per frame logic goes here
+ });
+</code></pre>
+<pre><code> viewport.execute();
+</code></pre>
+<pre class="source">
+class Viewport {
+
+ Element
+   container,
+   fps;
+
+ bool
+   showFPS = false;
+
+ double
+   fpsAverage;
+
+ num
+   renderTime;
+
+ int
+   width = 800,
+   height = 600;
+
+ CanvasElement
+   canvas;
+
+ WebGLRenderingContext
+   gl;
+
+ WebGLProgram
+   program;
+ 
+ List&lt;WebGLShader&gt;
+   shaders;
+
+ FramePainter
+   framepainter;
+ 
+ Preprocess
+   preanimation;
+
+ // ---- Initialization ------------------------------------------------------
+
+ /**
+  * Creates a Viewport object which provides helpers for most of the generic 
+  * webgl work. The only required parameter is a container which should 
+  * preferably be a plain old div. The class will populate said div with all
+  * necesary components.
+  * 
+  * For an example see the class's docblock. This class should be used with 
+  * advanced components but may be used by itself for simple webgl animation
+  * as well as sandboxing.
+  * 
+  * Note: frame capping is intentionally not supported; frames are not a 
+  * clock, if syncronization needs to exist then it should exist as logic 
+  * within the frame (ie. you don't just increment the hand of a clock every
+  * frame you calculate where it needs to be). Browsers will adjust framerate
+  * by themselves better then we can and needless to say there is no real way
+  * to cap frames, that is not clunky, so code which works with the time 
+  * provided by the frame is of far better quality at this time, then a 
+  * [window.setTimeout] with [window.requestAnimationFrame] in the animation 
+  * loop (which will result in frame skipping).
+  */
+ Viewport({Element this.container, num this.width: 800, num this.height: 600, bool this.showFPS: false}) {
+   this.canvas = new Element.html
+     (
+       """
+         &lt;canvas width="$width" height="$height"&gt;
+           Your browser does not support 3D graphics; please install a modern browser.
+         &lt;/canvas&gt;
+       """
+     );
+   this.container.elements.add(canvas);
+
+   if (this.showFPS) {
+     // create FPS info node
+     this.fps = new Element.html('&lt;div class="nyx-fps" /&gt;');
+     this.container.elements.add(this.fps);
+   }
+
+   // try and get the gl context
+   this.gl = this.canvas.getContext('webgl');
+
+   if (this.gl == null) {
+     // try and get it via the legacy interface
+     this.gl = this.canvas.getContext('experimental-webgl');
+   }
+
+   if (this.gl == null) {
+     throw new Exception_MissingFeature();
+   }
+
+   this.gl.viewport(0, 0, this.width, this.height);
+   this.program = this.gl.createProgram();
+ }
+
+ // ---- Painting ------------------------------------------------------------
+
+ /**
+  * ...
+  */
+ void addVertexShader({String source}) {
+   WebGLShader shader = this.gl.createShader(WebGLRenderingContext.VERTEX_SHADER);
+   this.gl.shaderSource(shader, source);
+   this.gl.compileShader(shader);
+   
+   // check for errors
+   if ( ! this.gl.getShaderParameter(shader, WebGLRenderingContext.COMPILE_STATUS)) {
+     String error_info = this.gl.getShaderInfoLog(shader);
+     this.gl.deleteShader(shader);
+     
+     throw new Exception(error_info);
+   }
+   
+//    this.shaders.add(shader);
+   this.gl.attachShader(this.program, shader);
+ }
+
+ /**
+  * ...
+  */
+ void addFragmentShader({String source}) {
+   WebGLShader shader = this.gl.createShader(WebGLRenderingContext.FRAGMENT_SHADER);
+   this.gl.shaderSource(shader, source);
+   this.gl.compileShader(shader);
+
+   // check for errors
+   if ( ! this.gl.getShaderParameter(shader, WebGLRenderingContext.COMPILE_STATUS)) {
+     String error_info = this.gl.getShaderInfoLog(shader);
+     this.gl.deleteShader(shader);
+     
+     throw new Exception(error_info);
+   }
+
+//    this.shaders.add(shader);
+   this.gl.attachShader(this.program, shader);
+ }
+ 
+ /**
+  * Define a function to execute before the animation starts. You can use it
+  * to setup various pointers to uniforms and attributes you need, to avoid
+  * re-calling them in each frame.
+  */
+ void preprocessor(Preprocess preprocessor) {
+   this.preanimation = preprocessor;
+ }
+
+ /**
+  * The painter is the per frame logic. A function accepting the named
+  * parameters: gl, program, time and aspect should be used.
+  */
+ void painter(FramePainter painter) {
+   this.framepainter = painter;
+ }
+
+ /**
+  * Compile and run the program.
+  */
+ void execute() {
+   this.gl.linkProgram(this.program);
+
+   // check for errors
+   if ( ! this.gl.getProgramParameter(this.program, WebGLRenderingContext.LINK_STATUS)) {
+     String error_info = this.gl.getProgramInfoLog(this.program);
+     this.gl.deleteProgram(this.program);
+     this.shaders.every((WebGLShader shader) {
+       gl.deleteShader(shader);
+     });
+     
+     throw new Exception(error_info);
+   }
+
+   this.gl.useProgram(this.program);
+
+   this.preanimation
+     (
+       gl: this.gl,
+       program: this.program
+     );
+   
+   this.animate(null);
+ }
+ 
+ /**
+  * We use this method to run our animation loop; this method uses
+  * [window.requestAnimationFrame] to conserve battery life and processing
+  * power when our program is running in the background.
+  *
+  * To set the frame painter use the [painter] method.
+  */
+ void animate(num time) {
+   num time = new Date.now().millisecondsSinceEpoch;
+
+   if (this.showFPS) {
+     if (renderTime != null) {
+       this.fpsIs((1000 / (time - renderTime)).round());
+     }
+
+     renderTime = time;
+   }
+
+   this.framepainter(
+       gl: this.gl,
+       program: this.program,
+       aspect: this.width / this.height,
+       time: time
+   );
+
+   window.requestAnimationFrame(this.animate);  
+ }
+
+ // ---- etc -----------------------------------------------------------------
+ 
+ /**
+  * Update fps counter.
+  */
+ void fpsIs(num fps) {
+   if (fpsAverage == null) {
+     fpsAverage = fps;
+   }
+
+   fpsAverage = fps * 0.05 + fpsAverage * 0.95;
+
+   this.fps.text = "${fpsAverage.round().toInt()} fps";
+ }
+
+}
+</pre>
+</div>
+<div>
+<h3>Constructors</h3>
+<div class="method"><h4 id="Viewport">
+<button class="show-code">Code</button>
+new <strong>Viewport</strong>({<a href="http://api.dartlang.org/dart_html/Element.html">Element</a> container, <a href="http://api.dartlang.org/dart_core/num.html">num</a> width: 800, <a href="http://api.dartlang.org/dart_core/num.html">num</a> height: 600, <a href="http://api.dartlang.org/dart_core/bool.html">bool</a> showFPS: false}) <a class="anchor-link" href="#Viewport"
+              title="Permalink to Viewport.Viewport">#</a></h4>
+<div class="doc">
+<p>Creates a Viewport object which provides helpers for most of the generic
+webgl work. The only required parameter is a container which should
+preferably be a plain old div. The class will populate said div with all
+necesary components.</p>
+<p>For an example see the class's docblock. This class should be used with
+advanced components but may be used by itself for simple webgl animation
+as well as sandboxing.</p>
+<p>Note: frame capping is intentionally not supported; frames are not a
+clock, if syncronization needs to exist then it should exist as logic
+within the frame (ie. you don't just increment the hand of a clock every
+frame you calculate where it needs to be). Browsers will adjust framerate
+by themselves better then we can and needless to say there is no real way
+to cap frames, that is not clunky, so code which works with the time
+provided by the frame is of far better quality at this time, then a
+<code>window.setTimeout</code> with <code>window.requestAnimationFrame</code> in the animation
+loop (which will result in frame skipping).</p>
+<pre class="source">
+Viewport({Element this.container, num this.width: 800, num this.height: 600, bool this.showFPS: false}) {
+ this.canvas = new Element.html
+   (
+     """
+       &lt;canvas width="$width" height="$height"&gt;
+         Your browser does not support 3D graphics; please install a modern browser.
+       &lt;/canvas&gt;
+     """
+   );
+ this.container.elements.add(canvas);
+
+ if (this.showFPS) {
+   // create FPS info node
+   this.fps = new Element.html('&lt;div class="nyx-fps" /&gt;');
+   this.container.elements.add(this.fps);
+ }
+
+ // try and get the gl context
+ this.gl = this.canvas.getContext('webgl');
+
+ if (this.gl == null) {
+   // try and get it via the legacy interface
+   this.gl = this.canvas.getContext('experimental-webgl');
+ }
+
+ if (this.gl == null) {
+   throw new Exception_MissingFeature();
+ }
+
+ this.gl.viewport(0, 0, this.width, this.height);
+ this.program = this.gl.createProgram();
+}
+</pre>
+</div>
+</div>
+</div>
+<div>
+<h3>Properties</h3>
+<div class="field"><h4 id="canvas">
+<button class="show-code">Code</button>
+<a href="http://api.dartlang.org/dart_html/CanvasElement.html">CanvasElement</a>         <strong>canvas</strong> <a class="anchor-link"
+            href="#canvas"
+            title="Permalink to Viewport.canvas">#</a>
+        </h4>
+        <div class="doc">
+<pre class="source">
+CanvasElement
+ canvas;
+</pre>
+</div>
+</div>
+<div class="field"><h4 id="container">
+<button class="show-code">Code</button>
+<a href="http://api.dartlang.org/dart_html/Element.html">Element</a>         <strong>container</strong> <a class="anchor-link"
+            href="#container"
+            title="Permalink to Viewport.container">#</a>
+        </h4>
+        <div class="doc">
+<pre class="source">
+Element
+ container,
+ fps;
+</pre>
+</div>
+</div>
+<div class="field"><h4 id="fps">
+<button class="show-code">Code</button>
+<a href="http://api.dartlang.org/dart_html/Element.html">Element</a>         <strong>fps</strong> <a class="anchor-link"
+            href="#fps"
+            title="Permalink to Viewport.fps">#</a>
+        </h4>
+        <div class="doc">
+<pre class="source">
+Element
+ container,
+ fps;
+</pre>
+</div>
+</div>
+<div class="field"><h4 id="fpsAverage">
+<button class="show-code">Code</button>
+<a href="http://api.dartlang.org/dart_core/double.html">double</a>         <strong>fpsAverage</strong> <a class="anchor-link"
+            href="#fpsAverage"
+            title="Permalink to Viewport.fpsAverage">#</a>
+        </h4>
+        <div class="doc">
+<pre class="source">
+double
+ fpsAverage;
+</pre>
+</div>
+</div>
+<div class="field"><h4 id="framepainter">
+<button class="show-code">Code</button>
+<a href="../nyx/FramePainter.html">FramePainter</a>         <strong>framepainter</strong> <a class="anchor-link"
+            href="#framepainter"
+            title="Permalink to Viewport.framepainter">#</a>
+        </h4>
+        <div class="doc">
+<pre class="source">
+FramePainter
+ framepainter;
+</pre>
+</div>
+</div>
+<div class="field"><h4 id="gl">
+<button class="show-code">Code</button>
+<a href="http://api.dartlang.org/dart_html/WebGLRenderingContext.html">WebGLRenderingContext</a>         <strong>gl</strong> <a class="anchor-link"
+            href="#gl"
+            title="Permalink to Viewport.gl">#</a>
+        </h4>
+        <div class="doc">
+<pre class="source">
+WebGLRenderingContext
+ gl;
+</pre>
+</div>
+</div>
+<div class="field"><h4 id="height">
+<button class="show-code">Code</button>
+<a href="http://api.dartlang.org/dart_core/int.html">int</a>         <strong>height</strong> <a class="anchor-link"
+            href="#height"
+            title="Permalink to Viewport.height">#</a>
+        </h4>
+        <div class="doc">
+<pre class="source">
+int
+ width = 800,
+ height = 600;
+</pre>
+</div>
+</div>
+<div class="field"><h4 id="preanimation">
+<button class="show-code">Code</button>
+<a href="../nyx/Preprocess.html">Preprocess</a>         <strong>preanimation</strong> <a class="anchor-link"
+            href="#preanimation"
+            title="Permalink to Viewport.preanimation">#</a>
+        </h4>
+        <div class="doc">
+<pre class="source">
+Preprocess
+ preanimation;
+</pre>
+</div>
+</div>
+<div class="field"><h4 id="program">
+<button class="show-code">Code</button>
+<a href="http://api.dartlang.org/dart_html/WebGLProgram.html">WebGLProgram</a>         <strong>program</strong> <a class="anchor-link"
+            href="#program"
+            title="Permalink to Viewport.program">#</a>
+        </h4>
+        <div class="doc">
+<pre class="source">
+WebGLProgram
+ program;
+</pre>
+</div>
+</div>
+<div class="field"><h4 id="renderTime">
+<button class="show-code">Code</button>
+<a href="http://api.dartlang.org/dart_core/num.html">num</a>         <strong>renderTime</strong> <a class="anchor-link"
+            href="#renderTime"
+            title="Permalink to Viewport.renderTime">#</a>
+        </h4>
+        <div class="doc">
+<pre class="source">
+num
+ renderTime;
+</pre>
+</div>
+</div>
+<div class="field"><h4 id="shaders">
+<button class="show-code">Code</button>
+<a href="http://api.dartlang.org/dart_core/List.html">List</a>&lt;<a href="http://api.dartlang.org/dart_html/WebGLShader.html">WebGLShader</a>&gt;         <strong>shaders</strong> <a class="anchor-link"
+            href="#shaders"
+            title="Permalink to Viewport.shaders">#</a>
+        </h4>
+        <div class="doc">
+<pre class="source">
+List&lt;WebGLShader&gt;
+ shaders;
+</pre>
+</div>
+</div>
+<div class="field"><h4 id="showFPS">
+<button class="show-code">Code</button>
+<a href="http://api.dartlang.org/dart_core/bool.html">bool</a>         <strong>showFPS</strong> <a class="anchor-link"
+            href="#showFPS"
+            title="Permalink to Viewport.showFPS">#</a>
+        </h4>
+        <div class="doc">
+<pre class="source">
+bool
+ showFPS = false;
+</pre>
+</div>
+</div>
+<div class="field"><h4 id="width">
+<button class="show-code">Code</button>
+<a href="http://api.dartlang.org/dart_core/int.html">int</a>         <strong>width</strong> <a class="anchor-link"
+            href="#width"
+            title="Permalink to Viewport.width">#</a>
+        </h4>
+        <div class="doc">
+<pre class="source">
+int
+ width = 800,
+ height = 600;
+</pre>
+</div>
+</div>
+</div>
+<div>
+<h3>Methods</h3>
+<div class="method"><h4 id="addFragmentShader">
+<button class="show-code">Code</button>
+void <strong>addFragmentShader</strong>({<a href="http://api.dartlang.org/dart_core/String.html">String</a> source}) <a class="anchor-link" href="#addFragmentShader"
+              title="Permalink to Viewport.addFragmentShader">#</a></h4>
+<div class="doc">
+<p>...</p>
+<pre class="source">
+void addFragmentShader({String source}) {
+ WebGLShader shader = this.gl.createShader(WebGLRenderingContext.FRAGMENT_SHADER);
+ this.gl.shaderSource(shader, source);
+ this.gl.compileShader(shader);
+
+ // check for errors
+ if ( ! this.gl.getShaderParameter(shader, WebGLRenderingContext.COMPILE_STATUS)) {
+   String error_info = this.gl.getShaderInfoLog(shader);
+   this.gl.deleteShader(shader);
+   
+   throw new Exception(error_info);
+ }
+
+//    this.shaders.add(shader);
+ this.gl.attachShader(this.program, shader);
+}
+</pre>
+</div>
+</div>
+<div class="method"><h4 id="addVertexShader">
+<button class="show-code">Code</button>
+void <strong>addVertexShader</strong>({<a href="http://api.dartlang.org/dart_core/String.html">String</a> source}) <a class="anchor-link" href="#addVertexShader"
+              title="Permalink to Viewport.addVertexShader">#</a></h4>
+<div class="doc">
+<p>...</p>
+<pre class="source">
+void addVertexShader({String source}) {
+ WebGLShader shader = this.gl.createShader(WebGLRenderingContext.VERTEX_SHADER);
+ this.gl.shaderSource(shader, source);
+ this.gl.compileShader(shader);
+ 
+ // check for errors
+ if ( ! this.gl.getShaderParameter(shader, WebGLRenderingContext.COMPILE_STATUS)) {
+   String error_info = this.gl.getShaderInfoLog(shader);
+   this.gl.deleteShader(shader);
+   
+   throw new Exception(error_info);
+ }
+ 
+//    this.shaders.add(shader);
+ this.gl.attachShader(this.program, shader);
+}
+</pre>
+</div>
+</div>
+<div class="method"><h4 id="animate">
+<button class="show-code">Code</button>
+void <strong>animate</strong>(<a href="http://api.dartlang.org/dart_core/num.html">num</a> time) <a class="anchor-link" href="#animate"
+              title="Permalink to Viewport.animate">#</a></h4>
+<div class="doc">
+<p>We use this method to run our animation loop; this method uses
+<code>window.requestAnimationFrame</code> to conserve battery life and processing
+power when our program is running in the background.</p>
+<p>To set the frame painter use the <a class="crossref" href="../nyx/Viewport.html#painter">painter</a> method.</p>
+<pre class="source">
+void animate(num time) {
+ num time = new Date.now().millisecondsSinceEpoch;
+
+ if (this.showFPS) {
+   if (renderTime != null) {
+     this.fpsIs((1000 / (time - renderTime)).round());
+   }
+
+   renderTime = time;
+ }
+
+ this.framepainter(
+     gl: this.gl,
+     program: this.program,
+     aspect: this.width / this.height,
+     time: time
+ );
+
+ window.requestAnimationFrame(this.animate);  
+}
+</pre>
+</div>
+</div>
+<div class="method"><h4 id="execute">
+<button class="show-code">Code</button>
+void <strong>execute</strong>() <a class="anchor-link" href="#execute"
+              title="Permalink to Viewport.execute">#</a></h4>
+<div class="doc">
+<p>Compile and run the program.</p>
+<pre class="source">
+void execute() {
+ this.gl.linkProgram(this.program);
+
+ // check for errors
+ if ( ! this.gl.getProgramParameter(this.program, WebGLRenderingContext.LINK_STATUS)) {
+   String error_info = this.gl.getProgramInfoLog(this.program);
+   this.gl.deleteProgram(this.program);
+   this.shaders.every((WebGLShader shader) {
+     gl.deleteShader(shader);
+   });
+   
+   throw new Exception(error_info);
+ }
+
+ this.gl.useProgram(this.program);
+
+ this.preanimation
+   (
+     gl: this.gl,
+     program: this.program
+   );
+ 
+ this.animate(null);
+}
+</pre>
+</div>
+</div>
+<div class="method"><h4 id="fpsIs">
+<button class="show-code">Code</button>
+void <strong>fpsIs</strong>(<a href="http://api.dartlang.org/dart_core/num.html">num</a> fps) <a class="anchor-link" href="#fpsIs"
+              title="Permalink to Viewport.fpsIs">#</a></h4>
+<div class="doc">
+<p>Update fps counter.</p>
+<pre class="source">
+void fpsIs(num fps) {
+ if (fpsAverage == null) {
+   fpsAverage = fps;
+ }
+
+ fpsAverage = fps * 0.05 + fpsAverage * 0.95;
+
+ this.fps.text = "${fpsAverage.round().toInt()} fps";
+}
+</pre>
+</div>
+</div>
+<div class="method"><h4 id="painter">
+<button class="show-code">Code</button>
+void <strong>painter</strong>(<a href="../nyx/FramePainter.html">FramePainter</a> painter) <a class="anchor-link" href="#painter"
+              title="Permalink to Viewport.painter">#</a></h4>
+<div class="doc">
+<p>The painter is the per frame logic. A function accepting the named
+parameters: gl, program, time and aspect should be used.</p>
+<pre class="source">
+void painter(FramePainter painter) {
+ this.framepainter = painter;
+}
+</pre>
+</div>
+</div>
+<div class="method"><h4 id="preprocessor">
+<button class="show-code">Code</button>
+void <strong>preprocessor</strong>(<a href="../nyx/Preprocess.html">Preprocess</a> preprocessor) <a class="anchor-link" href="#preprocessor"
+              title="Permalink to Viewport.preprocessor">#</a></h4>
+<div class="doc">
+<p>Define a function to execute before the animation starts. You can use it
+to setup various pointers to uniforms and attributes you need, to avoid
+re-calling them in each frame.</p>
+<pre class="source">
+void preprocessor(Preprocess preprocessor) {
+ this.preanimation = preprocessor;
+}
+</pre>
+</div>
+</div>
+</div>
+        </div>
+        <div class="clear"></div>
+        </div>
+        
+        <div class="footer">
+          <div>This page was generated at 2012-11-23 14:05:15.631</div>
+        </div>
+        <script async src="../client-static.js"></script>
+        </body></html>
+        

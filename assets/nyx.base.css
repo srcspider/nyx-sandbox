@@ -1,0 +1,23 @@
+
+body {
+  background-color: #F8F8F8;
+  font-family: 'Open Sans', sans-serif;
+  font-size: 14px;
+  font-weight: normal;
+  line-height: 1.2em;
+  margin: 15px;
+}
+
+p {
+  color: #333;
+}
+
+.nyx-main-viewport {
+  position: relative;
+}
+
+.nyx-fps {
+  font-size: 14px;
+  position: absolute;
+  top: 2px; left: 5px;
+}
