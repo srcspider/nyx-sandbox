@@ -25,8 +25,8 @@ indentation level always irked me. And who doesn't like short files anyway?
 
 ## Comment ownership
 
-I mix my own code with the examples so while /// are all mine (more notes, 
-rather then comments), // comments might be from the original source, or 
+I mix my own code with the examples so while `///` are all mine (more notes, 
+rather then comments), `//` comments might be from the original source, or 
 both (ie. altered).
 
 Also "..." comments are my way of saying "this is self explainatory". They're
