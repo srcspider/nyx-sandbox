@@ -166,7 +166,7 @@ void main() {
     program(viewport);
   }
   on nyx.Exception_MissingFeature catch(e) {
-    query('[data-nyx-viewport]').Text 
+    query('[data-nyx-viewport]').text
        = nyx.Exception_MissingFeature.HELP_MESSAGE;
   }
 }
