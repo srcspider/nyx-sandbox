@@ -53,7 +53,7 @@ typedef void Preprocess({WebGLRenderingContext gl, WebGLProgram program});
  *          """
  *      );
  *      
- *      viewport.painter(({gl, program, aspect, time}) {
+ *      viewport.painter(({WebGLRenderingContext gl, WebGLProgram program, double aspect, num time}) {
  *        // your per frame logic goes here
  *      });
  *      
@@ -95,7 +95,7 @@ class Viewport {
     framepainter;
   
   Preprocess
-    preanimation;
+    before;
 
   // ---- Initialization ------------------------------------------------------
 
@@ -120,19 +120,12 @@ class Viewport {
    * loop (which will result in frame skipping).
    */
   Viewport({Element this.container, num this.width: 800, num this.height: 600, bool this.showFPS: false}) {
-    this.canvas = new Element.html
-      (
-        """
-          <canvas width="$width" height="$height">
-            Your browser does not support 3D graphics; please install a modern browser.
-          </canvas>
-        """
-      );
+    this.canvas = new Element.html('<canvas width="$width" height="$height"/>');
     this.container.elements.add(canvas);
 
     if (this.showFPS) {
       // create FPS info node
-      this.fps = new Element.html('<div class="nyx-fps" />');
+      this.fps = new Element.html('<div class="nyx-fps"/>');
       this.container.elements.add(this.fps);
     }
 
@@ -199,8 +192,8 @@ class Viewport {
    * to setup various pointers to uniforms and attributes you need, to avoid
    * re-calling them in each frame.
    */
-  void preprocessor(Preprocess preprocessor) {
-    this.preanimation = preprocessor;
+  void preprocessor(Preprocess before) {
+    this.before = before;
   }
 
   /**
@@ -230,11 +223,13 @@ class Viewport {
 
     this.gl.useProgram(this.program);
 
-    this.preanimation
-      (
-        gl: this.gl,
-        program: this.program
-      );
+    if (this.before != null) {
+      this.before
+        (
+          gl: this.gl,
+          program: this.program
+        );
+    }
     
     this.animate(null);
   }
@@ -247,11 +242,18 @@ class Viewport {
    * To set the frame painter use the [painter] method.
    */
   void animate(num time) {
-    num time = new Date.now().millisecondsSinceEpoch;
-
+    num time = new Date.now().millisecondsSinceEpoch.abs();
+    
     if (this.showFPS) {
       if (renderTime != null) {
-        this.fpsIs((1000 / (time - renderTime)).round());
+        // bugfix: divizion by zero on XP
+        if (time - renderTime == 0) {
+          this.fpsIs(0);
+        }
+        else {
+          this.fpsIs((1000 / (time - renderTime)).round());  
+        }
+        
       }
 
       renderTime = time;

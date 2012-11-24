@@ -8,7 +8,14 @@ class Exception_MissingFeature {
   static const HELP_MESSAGE =
     """
     This application required up to date WebGL support. To see if your browser
-    supports webgl please visit: http://doesmybrowsersupportwebgl.com/ 
+    supports webgl please visit: http://get.webgl.org/ 
+    """;
+  
+  static const HELP_MESSAGE_HTNL = 
+    """
+    This application required up to date WebGL support. To see if your browser
+    supports webgl please visit: 
+    <a href="http://get.webgl.org/">get.webgl.org</a>
     """;
 }
 

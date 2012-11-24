@@ -1,6 +1,7 @@
-name:  Nyx Sandbox
-description:  
-
+name: nyx-sandbox
+description: WebGL examples 
+version: 0.1.0
+author: srcspider <source.spider@gmail.com>
+homepage: https://github.com/srcspider/nyx-sandbox
 dependencies:
-  vector_math:
-    git: https://github.com/johnmccutchan/DartVectorMath.git
+  vector_math: any
