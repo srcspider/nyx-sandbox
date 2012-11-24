@@ -1,3 +1,4 @@
 // ignore packages
 packages/*
 vendor/*
+pubspec.lock
