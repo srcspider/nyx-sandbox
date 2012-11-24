@@ -3,7 +3,7 @@ import 'nyx/lib.dart' as nyx;
 import 'nyx/lib.dart' show GL;
 
 // external dependencies
-import 'package:vector_math/vector_math_browser.dart';
+import 'vendor/vector_math/vector_math_browser.dart';
 
 ///
 /// ### hello, cube ###
@@ -287,6 +287,7 @@ void program(nyx.Viewport viewport) {
     
     /// First we set up the necesary matrix'es
     
+    // everything needs perspective
     mat4 perspective_matrix = makePerspective
       (
         45.0,   // field of view
@@ -297,6 +298,17 @@ void program(nyx.Viewport viewport) {
     
     // http://3dengine.org/Modelview_matrix
     mat4 modelview_matrix = new mat4.identity();
+    
+    // we now have to position our camera
+    vec3 cameraPosition = new vec3.raw(2.5, 2.5, 2.5);
+    vec3 cameraFocusPoint = new vec3.raw(-5.0, -5.0, -5.0);
+    vec3 upDirection = new vec3.raw(0.0, 1.0, 0.0); // up = positive on y-axis
+    mat4 lookat = makeLookAt(cameraPosition, cameraFocusPoint, upDirection);
+    
+    // we then combine our camera with the model; now everything is in 3D and
+    // looks like it should if viewed by a camera positioned in the way 
+    // specified above :)
+    modelview_matrix = modelview_matrix * lookat;
     
     // put in the cube points
     gl.bindBuffer(GL.ARRAY_BUFFER, vertex_buffer);
@@ -336,7 +348,7 @@ void main() {
     program(viewport);
   }
   on nyx.Exception_MissingFeature catch(e) {
-    query('[data-nyx-viewport]').Text 
+    query('[data-nyx-viewport]').text 
       = nyx.Exception_MissingFeature.HELP_MESSAGE;
   }
 }
